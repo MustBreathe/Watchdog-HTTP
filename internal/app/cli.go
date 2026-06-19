@@ -1,7 +1,6 @@
-package cli
+package app
 
 import (
-	"cmd/watchdog/main.go/internal/app"
 	"errors"
 	"log"
 	"os"
@@ -13,12 +12,8 @@ import (
 const SERVER = "server"
 const MONITOR = "monitor"
 
-type IExecutable interface {
-	Execute()
-}
-
 type CommandLineInterface struct {
-	strategy IExecutable
+	strategy Runner
 }
 
 func CLI() *CommandLineInterface {
@@ -29,37 +24,38 @@ func CLI() *CommandLineInterface {
 	return &cli
 }
 
-func (cli *CommandLineInterface) Execute(args []string) error {
+func (cli *CommandLineInterface) Build(args []string) (Runner, error) {
 
 	if len(args) == 0 || args[0] == "" {
-		return errors.New("Missing required arguments; run with 'help' to see usage")
+		return nil, errors.New("Missing required arguments; run with 'help' to see usage")
 	}
+
+	log.Println("[DBG] args:", args)
 
 	switch operation := strings.ToLower(args[0]); operation {
 	case SERVER:
 		{
-			log.Println("Build Server strategy: ", args)
-			//cli.strategy = ServerStrategy{}
+			log.Println("Server is running...")
 
-			application, err := app.New()
+			application, err := NewApplication()
 
 			if err != nil {
 				log.Fatal(err)
 				os.Exit(0)
 			}
-			application.Run()
+			return application, nil
 		}
 	case MONITOR:
 		{
-			log.Println("Build Monitor strategy: ", args)
+			log.Println("Incoming monitor command with parameters", args[1:])
 		}
 	default:
 		{
-			return errors.New("Invalid input operation '" + operation + "' exception")
+			return nil, errors.New("Invalid input operation '" + operation + "' exception")
 		}
 	}
 
-	return nil
+	return nil, errors.New("Not implemented exception")
 }
 
 func (cli CommandLineInterface) LoadConfiguration() error {
