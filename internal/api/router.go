@@ -8,6 +8,10 @@ import (
 
 type Router struct{}
 
+func NewRouter() *Router {
+	return &Router{}
+}
+
 type Response struct {
 	Message string `json:"message"`
 	Status  string `json:"status"`

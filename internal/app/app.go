@@ -30,5 +30,11 @@ func NewApplication() (*App, error) {
 }
 
 func (app *App) Run() error {
+	err := app.httpServer.ListenAndServe()
+	if err != nil {
+		if err != http.ErrServerClosed {
+			panic(err)
+		}
+	}
 	return nil
 }
