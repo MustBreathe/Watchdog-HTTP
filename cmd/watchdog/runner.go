@@ -1,5 +1,4 @@
-// runner.go
-package app
+package main
 
 type Runner interface {
 	Run() error

@@ -1,4 +1,4 @@
-package app
+package main
 
 import (
 	"errors"
@@ -6,11 +6,15 @@ import (
 	"os"
 	"strings"
 
+	"cmd/watchdog/main.go/internal/app"
+	"cmd/watchdog/main.go/internal/config"
+
 	"github.com/joho/godotenv"
 )
 
 const SERVER = "server"
 const MONITOR = "monitor"
+const CONFIG = "config"
 
 type CommandLineInterface struct {
 	strategy Runner
@@ -37,7 +41,7 @@ func (cli *CommandLineInterface) Build(args []string) (Runner, error) {
 		{
 			log.Println("Server is running...")
 
-			application, err := NewApplication()
+			application, err := app.NewApplication()
 
 			if err != nil {
 				log.Fatal(err)
@@ -48,6 +52,17 @@ func (cli *CommandLineInterface) Build(args []string) (Runner, error) {
 	case MONITOR:
 		{
 			log.Println("Incoming monitor command with parameters", args[1:])
+		}
+	case CONFIG:
+		{
+
+			application, err := config.NewDisplayConfiguration()
+
+			if err != nil {
+				log.Fatal(err)
+				os.Exit(0)
+			}
+			return application, nil
 		}
 	default:
 		{

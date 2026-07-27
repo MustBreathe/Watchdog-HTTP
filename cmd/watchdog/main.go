@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-
-	"cmd/watchdog/main.go/internal/app"
 )
 
 const MIN_NUMBER_OF_IMPUT_PARAMETERS = 2
@@ -14,7 +12,7 @@ func main() {
 	// c := make(chan os.Signal, 1)
 	// signal.Notify(c, os.Interrupt)
 
-	cli := app.CLI()
+	cli := CLI()
 
 	instance, err := cli.Build(os.Args[1:])
 

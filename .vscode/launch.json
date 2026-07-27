@@ -1,6 +1,7 @@
 {
   "version": "0.2.0",
   "configurations": [
+
     {
       "name": "Watchdog: server",
       "type": "go",
@@ -21,6 +22,16 @@
       //   "WEBHOOK_URL": "",
       //   "LOG_LEVEL": "debug"
       // },
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Watchdog CLI: config",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}/cmd/watchdog",
+      "cwd": "${workspaceFolder}",
+      "args": ["config"],
       "console": "integratedTerminal"
     },
     {
