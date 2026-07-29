@@ -44,3 +44,6 @@ CREATE TABLE incidents (
     updated_at TEXT NOT NULL,
     FOREIGN KEY (monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
 );
+/*
+    **Możliwe wartości** `status`: `open`, `resolved`
+*/

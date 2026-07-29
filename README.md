@@ -816,76 +816,295 @@ Alternatywnie dodaj flagę `--yes` dla pominięcia potwierdzenia.
 
 ## 🗄️ Baza danych
 
-Możesz użyć SQLite, żeby projekt był łatwy do uruchomienia lokalnie. Schemat powinien być zarządzany przez migracje SQL.
+# SQLite + golang-migrate
 
-### Tabela `monitors`
+Ten projekt używa biblioteki `golang-migrate` do zarządzania migracjami schematu bazy danych SQLite.
+
+## Instalacja
+
+### CLI
+
+Zainstaluj narzędzie `migrate` z obsługą SQLite:
+
+```bash
+go install -tags 'sqlite3' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+```
+
+Sprawdź instalację:
+
+```bash
+migrate -version
+```
+
+## Struktura projektu
+
+```text
+project/
+├── cmd/
+├── internal/
+├── migrations/
+│   ├── 000001_init.up.sql
+│   ├── 000001_init.down.sql
+│   ├── 000002_add_settings.up.sql
+│   └── 000002_add_settings.down.sql
+├── data/
+│   └── app.db
+└── go.mod
+```
+
+## Tworzenie nowej migracji
+
+Utwórz parę plików migracji:
+
+```bash
+migrate create -ext sql -dir migrations -seq create_users
+```
+
+Przykładowy rezultat:
+
+```text
+migrations/
+├── 000001_create_users.up.sql
+└── 000001_create_users.down.sql
+```
+
+### Migracja UP
 
 ```sql
-CREATE TABLE monitors (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    url TEXT NOT NULL,
-    method TEXT NOT NULL,
-    interval_seconds INTEGER NOT NULL,
-    timeout_seconds INTEGER NOT NULL,
-    expected_status INTEGER NOT NULL,
-    expected_body_substring TEXT,
-    headers_json TEXT,
-    enabled BOOLEAN NOT NULL DEFAULT 1,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL UNIQUE,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
-### Tabela `checks`
+### Migracja DOWN
 
 ```sql
-CREATE TABLE checks (
-    id TEXT PRIMARY KEY,
-    monitor_id TEXT NOT NULL,
-    started_at TEXT NOT NULL,
-    finished_at TEXT NOT NULL,
-    duration_ms INTEGER NOT NULL,
-    status_code INTEGER,
-    success BOOLEAN NOT NULL,
-    error_message TEXT,
-    response_body_sample TEXT,
-    trigger TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    FOREIGN KEY (monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
-);
+DROP TABLE users;
 ```
 
-**Indeksy:**
+## Inicjalizacja bazy danych
 
-```sql
-CREATE INDEX idx_checks_monitor_id_created_at
-ON checks (monitor_id, created_at DESC);
+W SQLite baza danych jest zwykłym plikiem. Nie trzeba tworzyć jej ręcznie.
 
-CREATE INDEX idx_checks_success
-ON checks (success);
+Jeżeli plik bazy nie istnieje:
+
+```bash
+migrate \
+  -path migrations \
+  -database "sqlite3://app.db" \
+  up
 ```
 
-### Tabela `incidents`
+to zostanie automatycznie utworzony plik:
 
-Dodaj ją w drugiej części projektu, po zrobieniu podstawowego monitoringu.
-
-```sql
-CREATE TABLE incidents (
-    id TEXT PRIMARY KEY,
-    monitor_id TEXT NOT NULL,
-    started_at TEXT NOT NULL,
-    resolved_at TEXT,
-    status TEXT NOT NULL,
-    failure_count INTEGER NOT NULL DEFAULT 1,
-    last_error_message TEXT,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
-    FOREIGN KEY (monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
-);
+```text
+app.db
 ```
 
-**Możliwe wartości** `status`: `open`, `resolved`
+oraz wykonane zostaną wszystkie migracje.
+
+## Wykonywanie migracji
+
+### Wykonanie wszystkich migracji
+
+```bash
+migrate \
+  -path migrations \
+  -database "sqlite3://app.db" \
+  up
+```
+
+### Wykonanie jednej migracji
+
+```bash
+migrate \
+  -path migrations \
+  -database "sqlite3://app.db" \
+  up 1
+```
+
+### Cofnięcie jednej migracji
+
+```bash
+migrate \
+  -path migrations \
+  -database "sqlite3://app.db" \
+  down 1
+```
+
+### Cofnięcie wszystkich migracji
+
+```bash
+migrate \
+  -path migrations \
+  -database "sqlite3://app.db" \
+  down
+```
+
+### Sprawdzenie aktualnej wersji
+
+```bash
+migrate \
+  -path migrations \
+  -database "sqlite3://app.db" \
+  version
+```
+
+## Uruchamianie migracji z poziomu Go
+
+### Zależności
+
+```go
+import (
+    "github.com/golang-migrate/migrate/v4"
+
+    _ "github.com/golang-migrate/migrate/v4/database/sqlite3"
+    _ "github.com/golang-migrate/migrate/v4/source/file"
+)
+```
+
+### Uruchamianie migracji
+
+```go
+func RunMigrations() error {
+    m, err := migrate.New(
+        "file://migrations",
+        "sqlite3://app.db",
+    )
+    if err != nil {
+        return err
+    }
+
+    if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+        return err
+    }
+
+    return nil
+}
+```
+
+Rekomendowane jest wywoływanie migracji podczas startu aplikacji.
+
+## Tworzenie bazy danych z poziomu Go
+
+SQLite automatycznie tworzy plik bazy podczas otwierania połączenia.
+
+Przykład z driverem `modernc.org/sqlite`:
+
+```go
+package main
+
+import (
+    "database/sql"
+    "log"
+
+    _ "modernc.org/sqlite"
+)
+
+func main() {
+    db, err := sql.Open("sqlite", "app.db")
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer db.Close()
+
+    if err := db.Ping(); err != nil {
+        log.Fatal(err)
+    }
+}
+```
+
+Po uruchomieniu aplikacji powstanie plik:
+
+```text
+app.db
+```
+
+## Osadzanie migracji w binarce
+
+Od Go 1.16 można użyć `embed`, dzięki czemu nie trzeba dostarczać katalogu `migrations` razem z aplikacją.
+
+### Embedding
+
+```go
+//go:embed migrations/*.sql
+var migrationsFS embed.FS
+```
+
+### Inicjalizacja źródła migracji
+
+```go
+d, err := iofs.New(migrationsFS, "migrations")
+if err != nil {
+  return err
+}
+
+m, err := migrate.NewWithSourceInstance(
+    "iofs",
+  d,
+    "sqlite3://app.db",
+)
+if err != nil {
+    return err
+}
+```
+
+## Obsługa błędów
+
+### Brak nowych migracji
+
+```text
+error: no change
+```
+
+Oznacza to, że wszystkie migracje zostały już wykonane.
+
+W kodzie Go:
+
+```go
+if err != nil && err != migrate.ErrNoChange {
+    return err
+}
+```
+
+### Dirty database version
+
+```text
+Dirty database version 3. Fix and force version.
+```
+
+Napraw stan migracji:
+
+```bash
+migrate \
+  -path migrations \
+  -database "sqlite3://app.db" \
+  force 2
+```
+
+gdzie `2` oznacza ostatnią poprawną wersję migracji.
+
+## Zalecana konfiguracja
+
+Dla nowych aplikacji Go rekomendowane jest:
+
+- SQLite jako lokalna baza danych
+- `modernc.org/sqlite` jako driver (bez CGO)
+- `golang-migrate` do zarządzania schematem
+- migracje osadzone przez `embed`
+- uruchamianie `m.Up()` podczas startu aplikacji
+- ignorowanie błędu `migrate.ErrNoChange`
+
+Taki setup pozwala deployować aplikację jako:
+
+```text
+my-app
+app.db
+```
+
+lub nawet jako pojedynczy binarny plik, jeśli migracje są osadzone przy pomocy `embed`.
 
 **Zasada:**
 
@@ -893,7 +1112,6 @@ CREATE TABLE incidents (
 - ➕ Jeśli monitor jest dalej `down`: zwiększ `failure_count`
 - 🟢 Jeśli monitor przejdzie z `down` → `up`: zamknij incident (`resolved_at`, `status=resolved`)
 
----
 
 ## 🔔 Powiadomienia webhook
 
