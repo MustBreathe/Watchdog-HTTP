@@ -7,16 +7,16 @@ import (
 	"strings"
 )
 
-type DisplayConfiguration struct {
+type Display struct {
 	// Display configuration for the watchdog application
 	// This struct can be extended to include more display-related settings as needed
 }
 
-func NewDisplayConfiguration() (*DisplayConfiguration, error) {
-	return &DisplayConfiguration{}, nil
+func NewDisplayConfiguration() (*Display, error) {
+	return &Display{}, nil
 }
 
-func (dc *DisplayConfiguration) Run() error {
+func (dc *Display) Run() error {
 	log.Println("Current configuration loaded")
 	conf := os.Environ()
 	slices.Sort(conf)
@@ -27,10 +27,5 @@ func (dc *DisplayConfiguration) Run() error {
 		}
 	}
 
-	for _, e := range conf {
-		if !strings.HasPrefix(e, "WATCHDOG_") {
-			log.Println(e)
-		}
-	}
 	return nil
 }
