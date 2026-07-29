@@ -1,72 +1,149 @@
-# Watchdog-HTTP
+# 📊 Watchdog-HTTP
 
- Run Server
- ```
- go run .\cmd\watchdog\main.go server
- ```
- 
+Aplikacja do monitorowania dostępności stron i API w Go.
 
-## Migration
+## O Projekcie
+
+**Watchdog HTTP** — monitor dostępności stron i API. Zbuduj w Go aplikację, która:
+- 🔄 Cyklicznie sprawdza dostępność wskazanych adresów HTTP/HTTPS
+- 💾 Zapisuje wyniki w bazie danych
+- 📡 Wystawia REST API
+- 🎛️ Pozwala zarządzać monitorami przez CLI
+- 🔔 Wysyła powiadomienia webhookiem, gdy usługa przestaje działać
+
+---
+
+## 🚀 Quick Start
+
+### Uruchomienie serwera
+```bash
+go run ./cmd/watchdog/main.go server
 ```
+
+### Instalacja narzędzia do migracji
+```bash
 go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 ```
- Po instalacji migrate.exe będzie w:
-C:\Users\LukasiM\go\bin
 
-Projekt: Watchdog HTTP — monitor dostępności stron i API
-Zbuduj w Go aplikację, która cyklicznie sprawdza dostępność wskazanych adresów HTTP/HTTPS, zapisuje wyniki w bazie danych, wystawia REST API, pozwala zarządzać monitorami przez CLI i wysyła powiadomienia webhookiem, gdy usługa przestaje działać.
-To jest projekt na około 40–70 godzin, zależnie od poziomu dopracowania. Bardzo dobrze pasuje do Go, bo użyjesz praktycznie: net/http, context, goroutines, channels, worker pool, database/sql, testów, middleware, konfiguracji, logowania, obsługi błędów i prostego deployu.
-1. Cel projektu
+Po instalacji `migrate.exe` będzie dostępny w: `C:\Users\LukasiM\go\bin`
+
+---
+---
+
+## 📋 Spis Treści
+
+1. [Cel projektu](#cel-projektu)
+2. [Zakres techniczny](#zakres-techniczny)
+3. [Proponowany stack](#proponowany-stack)
+4. [Wymagania funkcjonalne](#wymagania-funkcjonalne)
+   - [Zarządzanie monitorami](#zarządzanie-monitorami)
+   - [Wykonywanie sprawdzeń HTTP](#wykonywanie-sprawdzeń-http)
+   - [Scheduler](#scheduler)
+   - [Worker pool](#worker-pool)
+5. [REST API](#rest-api)
+6. [CLI](#cli)
+7. [Baza danych](#baza-danych)
+8. [Powiadomienia webhook](#powiadomienia-webhook)
+9. [Konfiguracja aplikacji](#konfiguracja-aplikacji)
+10. [Logowanie](#logowanie)
+11. [Struktura katalogów](#struktura-katalogów)
+12. [Testy](#testy)
+13. [Etapy realizacji](#etapy-realizacji)
+
+---
+
+## 🎯 Cel projektu
 Aplikacja ma pozwalać użytkownikowi zdefiniować listę monitorów, np.:
-Nazwa: API produkcyjne
-URL: https://example.com/health
-Metoda: GET
-Interwał: 60 sekund
-Timeout: 5 sekund
-Oczekiwany status: 200
-Oczekiwany tekst w odpowiedzi: "ok"
-System ma automatycznie sprawdzać te adresy, zapisywać historię wyników i umożliwiać sprawdzenie, które usługi działają, które nie działają i jaka była ich dostępność w czasie.
-2. Zakres techniczny
+
+| Pole | Wartość |
+|------|---------|
+| Nazwa | API produkcyjne |
+| URL | https://example.com/health |
+| Metoda | GET |
+| Interwał | 60 sekund |
+| Timeout | 5 sekund |
+| Oczekiwany status | 200 |
+| Oczekiwany tekst | "ok" |
+
+**System ma automatycznie:**
+- Sprawdzać te adresy
+- Zapisywać historię wyników
+- Umożliwiać sprawdzenie, które usługi działają, które nie działają
+- Wyświetlać dostępność w czasie
+
+---
+
+## ⚙️ Zakres techniczny
+
 Aplikacja powinna składać się z czterech głównych części:
-REST API do zarządzania monitorami i odczytu wyników.
-Scheduler + worker pool do wykonywania cyklicznych sprawdzeń HTTP.
-Baza danych do przechowywania monitorów, wyników i zdarzeń.
-CLI do zarządzania aplikacją z terminala.
-Opcjonalnie możesz dodać prosty panel HTML, ale nie jest konieczny.
-3. Proponowany stack
-Minimalnie:
-Go 1.22+
-net/http
-database/sql
-SQLite albo PostgreSQL
-encoding/json
-context
-testing
-Dodatkowo możesz użyć:
-github.com/mattn/go-sqlite3 albo modernc.org/sqlite
-github.com/jackc/pgx/v5 — jeżeli wybierzesz PostgreSQL
-github.com/spf13/cobra — CLI
-github.com/joho/godotenv — konfiguracja lokalna
-github.com/google/uuid — UUID
-Nie musisz używać frameworka webowego. Dla treningu Go lepiej zacząć od net/http.
-4. Główne wymagania funkcjonalne
-4.1. Zarządzanie monitorami
-System musi pozwalać na tworzenie, edycję, usuwanie, włączanie, wyłączanie i listowanie monitorów HTTP.
-Każdy monitor powinien mieć pola:
-id
-name
-url
-method
-interval_seconds
-timeout_seconds
-expected_status
-expected_body_substring
-headers
-enabled
-created_at
-updated_at
-Wymagania szczegółowe
-Użytkownik może utworzyć monitor z następującymi danymi:
+
+1. **REST API** — do zarządzania monitorami i odczytu wyników
+2. **Scheduler + worker pool** — do wykonywania cyklicznych sprawdzeń HTTP
+3. **Baza danych** — do przechowywania monitorów, wyników i zdarzeń
+4. **CLI** — do zarządzania aplikacją z terminala
+
+Opcjonalnie: prosty panel HTML (nie obowiązkowy)
+
+---
+
+## 📦 Proponowany stack
+
+### Minimalnie wymagane
+
+- Go 1.22+
+- `net/http`
+- `database/sql`
+- SQLite albo PostgreSQL
+- `encoding/json`
+- `context`
+- `testing`
+
+### Opcjonalne biblioteki
+
+```
+github.com/mattn/go-sqlite3 albo modernc.org/sqlite  — SQLite driver
+github.com/jackc/pgx/v5                              — PostgreSQL driver
+github.com/spf13/cobra                               — CLI framework
+github.com/joho/godotenv                             — zmienne środowiskowe
+github.com/google/uuid                               — UUID
+```
+
+⚠️ **Wskazówka:** Nie musisz używać frameworka webowego. Dla treningu Go lepiej zacząć od `net/http`.
+
+---
+
+## 📝 Wymagania funkcjonalne
+
+### Zarządzanie monitorami
+
+System musi pozwalać na:
+- ➕ Tworzenie monitorów
+- ✏️ Edycję monitorów
+- 🗑️ Usuwanie monitorów
+- ✅ Włączanie i wyłączanie
+- 📋 Listowanie monitorów
+
+#### Pola monitora
+
+Każdy monitor powinien mieć następujące pola:
+
+```
+- id                         — UUID
+- name                       — nazwa monitora
+- url                        — adres URL
+- method                     — metoda HTTP (GET, POST, itd.)
+- interval_seconds           — interwał sprawdzania
+- timeout_seconds            — timeout żądania
+- expected_status            — spodziewany kod HTTP
+- expected_body_substring    — fragment odpowiedzi (opcjonalnie)
+- headers                    — dodatkowe nagłówki
+- enabled                    — czy monitor jest aktywny
+- created_at, updated_at     — znaczniki czasowe
+```
+
+#### Walidacja
+
+```json
 {
   "name": "Example API",
   "url": "https://example.com/health",
@@ -80,43 +157,61 @@ Użytkownik może utworzyć monitor z następującymi danymi:
   },
   "enabled": true
 }
-Walidacja:
-name: wymagane, od 3 do 100 znaków
-url: wymagane, musi zaczynać się od http:// albo https://
-method: tylko GET, POST, PUT, PATCH, DELETE, HEAD
-interval_seconds: od 10 do 86400
-timeout_seconds: od 1 do 60
-expected_status: od 100 do 599
-expected_body_substring: opcjonalne, maksymalnie 500 znaków
-headers: opcjonalne, maksymalnie 20 nagłówków
-enabled: boolean
-Jeżeli dane są niepoprawne, API musi zwrócić błąd w ustalonym formacie:
+```
+
+**Reguły walidacji:**
+
+| Pole | Reguła |
+|------|--------|
+| `name` | Wymagane, 3-100 znaków |
+| `url` | Wymagane, musi zaczynać się od `http://` lub `https://` |
+| `method` | Tylko: GET, POST, PUT, PATCH, DELETE, HEAD |
+| `interval_seconds` | 10–86400 |
+| `timeout_seconds` | 1–60 |
+| `expected_status` | 100–599 |
+| `expected_body_substring` | Opcjonalne, max 500 znaków |
+| `headers` | Opcjonalne, max 20 nagłówków |
+
+**Błąd walidacji:**
+
+```json
 {
   "error": {
     "code": "VALIDATION_ERROR",
     "message": "interval_seconds must be between 10 and 86400"
   }
 }
-4.2. Wykonywanie sprawdzeń HTTP
+```
+
+### Wykonywanie sprawdzeń HTTP
+
 Aplikacja ma cyklicznie wykonywać sprawdzenia dla wszystkich aktywnych monitorów.
-Dla każdego sprawdzenia system powinien zapisać:
-id
-monitor_id
-started_at
-finished_at
-duration_ms
-status_code
-success
-error_message
-response_body_sample
-created_at
-Zasada sukcesu
-Sprawdzenie jest uznane za udane, jeżeli:
-- żądanie HTTP zakończyło się bez błędu,
-- kod statusu jest równy expected_status,
-- jeżeli expected_body_substring jest ustawione, odpowiedź zawiera ten tekst,
-- czas odpowiedzi nie przekroczył timeout_seconds.
-Przykład wyniku udanego sprawdzenia:
+
+#### Dane wyniku sprawdzenia
+
+```
+- id                       — UUID
+- monitor_id               — ID monitora
+- started_at, finished_at  — znaczniki czasu
+- duration_ms              — czas odpowiedzi w ms
+- status_code              — otrzymany kod HTTP
+- success                  — czy sprawdzenie się powiodło
+- error_message            — komunikat błędu (jeśli dostępny)
+- response_body_sample     — fragment odpowiedzi
+- created_at               — czas zapisania wyniku
+```
+
+#### Zasada sukcesu
+
+Sprawdzenie jest uznane za udane, gdy:
+- ✅ Żądanie HTTP zakończyło się bez błędu
+- ✅ Kod statusu jest równy `expected_status`
+- ✅ Jeśli ustawiony `expected_body_substring` — odpowiedź go zawiera
+- ✅ Czas odpowiedzi nie przekroczył `timeout_seconds`
+
+#### Przykład wyniku udanego sprawdzenia
+
+```json
 {
   "monitor_id": "8f4b5d2e-8122-4c0d-b1ab-55c98f8a0c31",
   "status_code": 200,
@@ -124,7 +219,11 @@ Przykład wyniku udanego sprawdzenia:
   "duration_ms": 123,
   "error_message": null
 }
-Przykład wyniku nieudanego sprawdzenia:
+```
+
+#### Przykład wyniku nieudanego sprawdzenia
+
+```json
 {
   "monitor_id": "8f4b5d2e-8122-4c0d-b1ab-55c98f8a0c31",
   "status_code": 500,
@@ -132,75 +231,133 @@ Przykład wyniku nieudanego sprawdzenia:
   "duration_ms": 88,
   "error_message": "expected status 200, got 500"
 }
-4.3. Scheduler
+```
+
+### Scheduler
+
 Scheduler ma uruchamiać sprawdzenia zgodnie z interwałem każdego monitora.
-Wymagania:
-- monitor z interval_seconds = 60 ma być sprawdzany mniej więcej co 60 sekund,
-- monitor wyłączony nie może być sprawdzany,
-- zmiana interwału monitora powinna zostać uwzględniona bez restartu aplikacji,
-- usunięty monitor nie może być dalej sprawdzany,
-- jeżeli poprzednie sprawdzenie monitora jeszcze trwa, scheduler nie powinien uruchamiać kolejnego dla tego samego monitora,
-- scheduler musi reagować na context cancellation przy zamykaniu aplikacji.
-To jest jedna z najważniejszych części projektu, bo wymusi użycie goroutines, contextów, synchronizacji i kanałów.
-4.4. Worker pool
+
+**Wymagania:**
+
+| Wymóg | Opis |
+|-------|------|
+| Regularność | Monitor z `interval_seconds = 60` ma być sprawdzany co 60 sekund |
+| Ignorowanie wyłączonych | Monitor wyłączony nie może być sprawdzany |
+| Dynamiczne zmiany | Zmiana interwału monitora bez restartu aplikacji |
+| Usunięte monitory | Usunięty monitor nie może być dalej sprawdzany |
+| Brak równoległych | Jeśli poprzednie sprawdzenie trwa, nie uruchamiaj kolejnego |
+| Graceful shutdown | Reaguj na `context cancellation` przy zamykaniu |
+
+> ⚠️ **Ważne:** To jedna z kluczowych części projektu. Wymusi użycie goroutines, contextów, synchronizacji i kanałów.
+
+### Worker pool
+
 Nie uruchamiaj nieograniczonej liczby goroutines. Zaimplementuj worker pool.
-Konfiguracja:
+
+**Konfiguracja:**
+
+```bash
 WORKER_COUNT=5
 CHECK_QUEUE_SIZE=100
-Wymagania:
-- scheduler wrzuca zadania sprawdzeń do kolejki,
-- pracownicy pobierają zadania z kanału,
-- każdy worker wykonuje sprawdzenie HTTP,
-- wynik jest zapisywany do bazy,
-- jeżeli kolejka jest pełna, system powinien zalogować ostrzeżenie i pominąć zadanie albo zwrócić błąd wewnętrzny — wybierz jedną strategię i opisz ją w README.
-Przykładowy model zadania:
+```
+
+**Wymagania:**
+
+- 📬 Scheduler wrzuca zadania sprawdzeń do kolejki
+- 👷 Pracownicy pobierają zadania z kanału
+- 🔍 Każdy worker wykonuje sprawdzenie HTTP
+- 💾 Wynik jest zapisywany do bazy
+- ⚠️ Jeśli kolejka jest pełna: zaloguj ostrzeżenie, pomiń zadanie lub zwróć błąd 500
+
+**Model zadania:**
+
+```go
 type CheckJob struct {
-    MonitorID string
-    Trigger   string // "scheduled" albo "manual"
+    MonitorID string  // ID monitora
+    Trigger   string  // "scheduled" albo "manual"
 }
-5. REST API
-API powinno działać domyślnie na porcie 8080.
-5.1. Format błędów
+```
+
+---
+
+## 🔌 REST API
+
+API powinno działać domyślnie na porcie `8080`.
+
+### Format błędów
+
 Wszystkie błędy powinny mieć jeden format:
+
+```json
 {
   "error": {
     "code": "NOT_FOUND",
     "message": "monitor not found"
   }
 }
-Przykładowe kody błędów:
-VALIDATION_ERROR
-NOT_FOUND
-UNAUTHORIZED
-INTERNAL_ERROR
-CONFLICT
-5.2. Autoryzacja
+```
+
+**Kody błędów:**
+
+- `VALIDATION_ERROR` — błąd walidacji
+- `NOT_FOUND` — zasób nie znaleziony
+- `UNAUTHORIZED` — brak autoryzacji
+- `INTERNAL_ERROR` — błąd serwera
+- `CONFLICT` — konflikt (np. pełna kolejka)
+### Autoryzacja
+
 Dodaj prostą autoryzację przez API key.
-Każde żądanie do API, poza /healthz, musi zawierać nagłówek:
+
+Każde żądanie do API (poza `/healthz`) musi zawierać nagłówek:
+
+```
 X-API-Key: secret-dev-key
+```
+
 Klucz ma być pobierany z konfiguracji:
+
+```bash
 API_KEY=secret-dev-key
-Jeżeli klucz jest błędny albo pusty, API zwraca:
+```
+
+**Jeśli klucz jest błędny:**
+
+```http
 401 Unauthorized
-oraz:
+```
+
+```json
 {
   "error": {
     "code": "UNAUTHORIZED",
     "message": "invalid api key"
   }
 }
-5.3. Endpointy techniczne
-GET /healthz
-Zwraca status aplikacji.
-Odpowiedź:
+```
+
+### Endpointy techniczne
+
+#### `GET /healthz`
+
+Zwraca status aplikacji. **Nie wymaga API key.**
+
+**Odpowiedź:**
+
+```json
 {
   "status": "ok"
 }
-Ten endpoint nie wymaga API key.
-5.4. Endpointy monitorów
-POST /api/v1/monitors
+```
+
+### Endpointy monitorów
+
+#### `POST /api/v1/monitors` — Utwórz monitor
+
 Tworzy nowy monitor.
-Request:
+
+**Request:**
+
+```json
 {
   "name": "Example API",
   "url": "https://example.com/health",
@@ -214,7 +371,11 @@ Request:
   },
   "enabled": true
 }
-Response 201 Created:
+```
+
+**Response** `201 Created`:
+
+```json
 {
   "id": "8f4b5d2e-8122-4c0d-b1ab-55c98f8a0c31",
   "name": "Example API",
@@ -231,13 +392,23 @@ Response 201 Created:
   "created_at": "2026-06-16T12:00:00Z",
   "updated_at": "2026-06-16T12:00:00Z"
 }
-GET /api/v1/monitors
+```
+
+#### `GET /api/v1/monitors` — Lista monitorów
+
 Zwraca listę monitorów.
-Parametry query:
-enabled=true|false — opcjonalne
-limit=50 — domyślnie 50, maksymalnie 200
-offset=0 — domyślnie 0
-Response:
+
+**Parametry query:**
+
+```
+enabled=true|false   — opcjonalne
+limit=50             — domyślnie 50, maksymalnie 200
+offset=0             — domyślnie 0
+```
+
+**Response:**
+
+```json
 {
   "items": [
     {
@@ -257,9 +428,15 @@ Response:
   "offset": 0,
   "total": 1
 }
-GET /api/v1/monitors/{id}
+```
+
+#### `GET /api/v1/monitors/{id}` — Szczegóły monitora
+
 Zwraca szczegóły monitora.
-Response 200 OK:
+
+**Response** `200 OK`:
+
+```json
 {
   "id": "8f4b5d2e-8122-4c0d-b1ab-55c98f8a0c31",
   "name": "Example API",
@@ -276,60 +453,96 @@ Response 200 OK:
   "created_at": "2026-06-16T12:00:00Z",
   "updated_at": "2026-06-16T12:00:00Z"
 }
-Jeżeli monitor nie istnieje:
+```
+
+**Jeśli monitor nie istnieje:**
+
+```http
 404 Not Found
-{
-  "error": {
-    "code": "NOT_FOUND",
-    "message": "monitor not found"
-  }
-}
-PUT /api/v1/monitors/{id}
+```
+
+#### `PUT /api/v1/monitors/{id}` — Aktualizuj monitor
+
 Aktualizuje cały monitor.
-Request taki sam jak przy tworzeniu.
-Response 200 OK: zaktualizowany monitor.
-PATCH /api/v1/monitors/{id}/enable
-Włącza monitor.
-Response:
+
+- **Request:** taki sam jak przy tworzeniu
+- **Response** `200 OK`: zaktualizowany monitor
+
+#### `PATCH /api/v1/monitors/{id}/enable` — Włącz monitor
+{
+  "id": "8f4b5d2e-8122-4c0d-b1ab-55c98f8a0c31",
+  "enabled": true
+**Response:**
+
+```json
 {
   "id": "8f4b5d2e-8122-4c0d-b1ab-55c98f8a0c31",
   "enabled": true
 }
-PATCH /api/v1/monitors/{id}/disable
-Wyłącza monitor.
-Response:
+```
+
+#### `PATCH /api/v1/monitors/{id}/disable` — Wyłącz monitor
+
+**Response:**
+
+```json
 {
   "id": "8f4b5d2e-8122-4c0d-b1ab-55c98f8a0c31",
   "enabled": false
 }
-DELETE /api/v1/monitors/{id}
-Usuwa monitor.
-Response:
-204 No Content
-Wymaganie: usunięcie monitora powinno usunąć również jego wyniki albo oznaczyć monitor jako usunięty. Wybierz jedną strategię. Na start prostsze jest fizyczne usuwanie monitora i wyników.
-5.5. Endpointy sprawdzeń
-POST /api/v1/monitors/{id}/checks
+```
+
+#### `DELETE /api/v1/monitors/{id}` — Usuń monitor
+
+**Response** `204 No Content`
+
+> 💡 Usunięcie monitora powinno również usunąć jego wyniki. Prostsze podejście: fizyczne usuwanie.
+
+### Endpointy sprawdzeń
+
+#### `POST /api/v1/monitors/{id}/checks` — Ręczne sprawdzenie
+
 Uruchamia ręczne sprawdzenie monitora.
-Response 202 Accepted:
+
+**Response** `202 Accepted`:
+
+```json
 {
   "message": "check queued",
   "monitor_id": "8f4b5d2e-8122-4c0d-b1ab-55c98f8a0c31"
 }
-Jeżeli kolejka jest pełna:
+```
+
+**Jeśli kolejka jest pełna:**
+
+```http
 409 Conflict
+```
+
+```json
 {
   "error": {
     "code": "CONFLICT",
     "message": "check queue is full"
   }
 }
-GET /api/v1/monitors/{id}/checks
+```
+
+#### `GET /api/v1/monitors/{id}/checks` — Historia sprawdzeń
+
 Zwraca historię sprawdzeń danego monitora.
-Parametry:
+
+**Parametry:**
+
+```
 limit=50
 offset=0
-success=true|false — opcjonalne
-Response:
+success=true|false   (opcjonalnie)
+```
+
+**Response:**
+
+```json
 {
   "items": [
     {
@@ -348,9 +561,15 @@ Response:
   "offset": 0,
   "total": 1
 }
-GET /api/v1/checks/{id}
+```
+
+#### `GET /api/v1/checks/{id}` — Szczegóły sprawdzenia
+
 Zwraca pojedynczy wynik sprawdzenia.
-Response:
+
+**Response:**
+
+```json
 {
   "id": "b8b8d71d-7a88-4639-bce0-d3e9bb731a12",
   "monitor_id": "8f4b5d2e-8122-4c0d-b1ab-55c98f8a0c31",
@@ -362,10 +581,17 @@ Response:
   "error_message": null,
   "response_body_sample": "ok"
 }
-5.6. Endpoint statusu monitora
-GET /api/v1/monitors/{id}/status
+```
+
+### Endpoint statusu monitora
+
+#### `GET /api/v1/monitors/{id}/status` — Status monitora
+
 Zwraca aktualny status monitora obliczony na podstawie ostatniego sprawdzenia.
-Response:
+
+**Response:**
+
+```json
 {
   "monitor_id": "8f4b5d2e-8122-4c0d-b1ab-55c98f8a0c31",
   "name": "Example API",
@@ -375,21 +601,30 @@ Response:
   "last_status_code": 200,
   "last_error_message": null
 }
-Możliwe wartości current_status:
-up
-down
-unknown
-Zasady:
-up: ostatnie sprawdzenie było udane
-down: ostatnie sprawdzenie było nieudane
-unknown: monitor nie ma jeszcze żadnych sprawdzeń
-5.7. Endpoint statystyk
-GET /api/v1/monitors/{id}/stats
+```
+
+**Możliwe wartości** `current_status`:
+
+- `up` — ostatnie sprawdzenie było udane
+- `down` — ostatnie sprawdzenie było nieudane
+- `unknown` — monitor nie ma jeszcze żadnych sprawdzeń
+
+### Endpoint statystyk
+
+#### `GET /api/v1/monitors/{id}/stats` — Statystyki monitora
+
 Zwraca statystyki dla monitora.
-Parametry:
-from=2026-06-01T00:00:00Z — opcjonalne
-to=2026-06-16T23:59:59Z — opcjonalne
-Response:
+
+**Parametry:**
+
+```
+from=2026-06-01T00:00:00Z   (opcjonalnie)
+to=2026-06-16T23:59:59Z     (opcjonalnie)
+```
+
+**Response:**
+
+```json
 {
   "monitor_id": "8f4b5d2e-8122-4c0d-b1ab-55c98f8a0c31",
   "total_checks": 100,
@@ -400,27 +635,42 @@ Response:
   "min_duration_ms": 80,
   "max_duration_ms": 410
 }
-Wymagania:
-- total_checks = liczba wszystkich sprawdzeń w zakresie,
-- successful_checks = liczba udanych sprawdzeń,
-- failed_checks = liczba nieudanych sprawdzeń,
-- uptime_percentage = successful_checks / total_checks * 100,
-- average_duration_ms = średni czas odpowiedzi,
-- jeżeli brak danych, uptime_percentage powinno wynosić null albo 0 — wybierz jedną strategię i opisz ją w README.
-6. CLI
+```
+
+**Wyjaśnienie pól:**
+
+| Pole | Opis |
+|------|------|
+| `total_checks` | Liczba wszystkich sprawdzeń w zakresie |
+| `successful_checks` | Liczba udanych sprawdzeń |
+| `failed_checks` | Liczba nieudanych sprawdzeń |
+| `uptime_percentage` | Procent czasu działania (successful/total * 100) |
+| `average_duration_ms` | Średni czas odpowiedzi |
+| `min_duration_ms` | Najmniejszy czas odpowiedzi |
+| `max_duration_ms` | Największy czas odpowiedzi |
+
+---
+
+## 💻 CLI
+
 Zbuduj prostą aplikację CLI, która komunikuje się z REST API.
-Możesz zrobić osobny binary:
-watchdogctl
-Albo jeden program z subkomendami:
-watchdog server
-watchdog monitor list
-watchdog monitor add
-6.1. Konfiguracja CLI
-CLI powinno czytać:
-WATCHDOG_API_URL=http://localhost:8080
-WATCHDOG_API_KEY=secret-dev-key
-Można też dodać flagi:
---api-url
+
+**Struktura:**
+
+```bash
+watchdog server                # Uruchomienie serwera
+watchdog monitor list          # Lista monitorów
+watchdog monitor add           # Dodanie monitora
+watchdog monitor get <ID>      # Szczegóły monitora
+watchdog monitor delete <ID>   # Usunięcie monitora
+watchdog monitor check <ID>    # Ręczne sprawdzenie
+watchdog monitor status <ID>   # Status monitora
+watchdog monitor checks <ID>   # Historia sprawdzeń
+```
+
+### Konfiguracja CLI
+
+CLI powinno czytać zmienne środowiskowe:
 --api-key
 Flagi powinny mieć pierwszeństwo nad zmiennymi środowiskowymi.
 6.2. Wymagane komendy CLI
@@ -442,38 +692,135 @@ ID: 8f4b5d2e-8122-4c0d-b1ab-55c98f8a0c31
 Name: Example API
 URL: https://example.com/health
 Lista monitorów
+```bash
+WATCHDOG_API_URL=http://localhost:8080
+WATCHDOG_API_KEY=secret-dev-key
+```
+
+**Flagi opcjonalne:**
+
+```bash
+--api-url <URL>      # Nadpisz URL API
+--api-key <KEY>      # Nadpisz klucz API
+```
+
+Flagi mają pierwszeństwo nad zmiennymi środowiskowymi.
+
+### Wymagane komendy CLI
+
+#### `watchdog server` — Uruchomienie serwera
+
+Uruchamia REST API, scheduler i worker pool.
+
+```bash
+watchdog server
+```
+
+#### `watchdog monitor add` — Dodanie monitora
+
+```bash
+watchdog monitor add \
+  --name "Example API" \
+  --url "https://example.com/health" \
+  --method GET \
+  --interval 60 \
+  --timeout 5 \
+  --expected-status 200 \
+  --expected-body "ok"
+```
+
+**Po sukcesie:**
+
+```
+Monitor created:
+ID: 8f4b5d2e-8122-4c0d-b1ab-55c98f8a0c31
+Name: Example API
+URL: https://example.com/health
+```
+
+#### `watchdog monitor list` — Lista monitorów
+
+```bash
 watchdog monitor list
-Przykładowy output:
+```
+
+**Output:**
+
+```
 ID                                    NAME          URL                         STATUS   INTERVAL
 8f4b5d2e-8122-4c0d-b1ab-55c98f8a0c31  Example API   https://example.com/health  up       60s
-Szczegóły monitora
+```
+
+#### `watchdog monitor get <ID>` — Szczegóły monitora
+
+```bash
 watchdog monitor get 8f4b5d2e-8122-4c0d-b1ab-55c98f8a0c31
-Ręczne sprawdzenie
+```
+
+#### `watchdog monitor check <ID>` — Ręczne sprawdzenie
+
+```bash
 watchdog monitor check 8f4b5d2e-8122-4c0d-b1ab-55c98f8a0c31
-Po sukcesie:
+```
+
+**Po sukcesie:**
+
+```
 Check queued.
-Status monitora
+```
+
+#### `watchdog monitor status <ID>` — Status monitora
+
+```bash
 watchdog monitor status 8f4b5d2e-8122-4c0d-b1ab-55c98f8a0c31
-Output:
+```
+
+**Output:**
+
+```
 Status: up
 Last checked: 2026-06-16 12:00:00
 Duration: 123 ms
 HTTP status: 200
-Historia sprawdzeń
+```
+
+#### `watchdog monitor checks <ID>` — Historia sprawdzeń
+
+```bash
 watchdog monitor checks 8f4b5d2e-8122-4c0d-b1ab-55c98f8a0c31 --limit 10
-Output:
+```
+
+**Output:**
+
+```
 TIME                  SUCCESS   STATUS   DURATION   ERROR
 2026-06-16 12:00:00   true      200      123ms      -
 2026-06-16 11:59:00   false     500      88ms       expected status 200, got 500
-Usunięcie monitora
+```
+
+#### `watchdog monitor delete <ID>` — Usunięcie monitora
+
+```bash
 watchdog monitor delete 8f4b5d2e-8122-4c0d-b1ab-55c98f8a0c31
+```
+
 CLI powinno poprosić o potwierdzenie:
+
+```
 Are you sure? Type monitor name to confirm:
-Dla prostszej wersji możesz dodać flagę:
---yes
-7. Baza danych
+```
+
+Alternatywnie dodaj flagę `--yes` dla pominięcia potwierdzenia.
+
+---
+
+## 🗄️ Baza danych
+
 Możesz użyć SQLite, żeby projekt był łatwy do uruchomienia lokalnie. Schemat powinien być zarządzany przez migracje SQL.
-7.1. Tabela monitors
+
+### Tabela `monitors`
+
+```sql
 CREATE TABLE monitors (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -488,7 +835,11 @@ CREATE TABLE monitors (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
-7.2. Tabela checks
+```
+
+### Tabela `checks`
+
+```sql
 CREATE TABLE checks (
     id TEXT PRIMARY KEY,
     monitor_id TEXT NOT NULL,
@@ -503,14 +854,23 @@ CREATE TABLE checks (
     created_at TEXT NOT NULL,
     FOREIGN KEY (monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
 );
-Indeksy:
+```
+
+**Indeksy:**
+
+```sql
 CREATE INDEX idx_checks_monitor_id_created_at
 ON checks (monitor_id, created_at DESC);
 
 CREATE INDEX idx_checks_success
 ON checks (success);
-7.3. Tabela incidents
+```
+
+### Tabela `incidents`
+
 Dodaj ją w drugiej części projektu, po zrobieniu podstawowego monitoringu.
+
+```sql
 CREATE TABLE incidents (
     id TEXT PRIMARY KEY,
     monitor_id TEXT NOT NULL,
@@ -523,25 +883,44 @@ CREATE TABLE incidents (
     updated_at TEXT NOT NULL,
     FOREIGN KEY (monitor_id) REFERENCES monitors(id) ON DELETE CASCADE
 );
-Możliwe wartości status:
-open
-resolved
-Zasada:
-- jeżeli monitor przejdzie ze stanu up/unknown do down, utwórz incident,
-- jeżeli monitor jest dalej down, zwiększ failure_count w otwartym incydencie,
-- jeżeli monitor przejdzie z down do up, zamknij otwarty incident przez ustawienie resolved_at i status = resolved.
-8. Powiadomienia webhook
+```
+
+**Możliwe wartości** `status`: `open`, `resolved`
+
+**Zasada:**
+
+- 🔴 Jeśli monitor przejdzie ze `up` lub `unknown` → `down`: utwórz incident
+- ➕ Jeśli monitor jest dalej `down`: zwiększ `failure_count`
+- 🟢 Jeśli monitor przejdzie z `down` → `up`: zamknij incident (`resolved_at`, `status=resolved`)
+
+---
+
+## 🔔 Powiadomienia webhook
+
 Po wykryciu awarii aplikacja powinna wysłać webhook na skonfigurowany adres.
-Konfiguracja:
+
+**Konfiguracja:**
+
+```bash
 WEBHOOK_URL=https://example.com/webhook
 WEBHOOK_ENABLED=true
-Webhook powinien być wysyłany tylko przy zmianie stanu:
-unknown -> down
-up -> down
-down -> up
-Nie wysyłaj webhooka przy każdym nieudanym sprawdzeniu, jeżeli monitor już jest w stanie down.
-8.1. Payload webhooka
-Dla awarii:
+```
+
+**Webhook wysyłany przy zmianie stanu:**
+
+```
+unknown → down
+up → down
+down → up
+```
+
+> ⚠️ Nie wysyłaj webhooka przy każdym nieudanym sprawdzeniu, jeśli monitor już jest w stanie `down`.
+
+### Payload webhooka
+
+**Dla awarii** (`monitor_down`):
+
+```json
 {
   "event": "monitor_down",
   "monitor_id": "8f4b5d2e-8122-4c0d-b1ab-55c98f8a0c31",
@@ -550,7 +929,11 @@ Dla awarii:
   "checked_at": "2026-06-16T12:00:00Z",
   "error_message": "expected status 200, got 500"
 }
-Dla powrotu do działania:
+```
+
+**Dla powrotu do działania** (`monitor_up`):
+
+```json
 {
   "event": "monitor_up",
   "monitor_id": "8f4b5d2e-8122-4c0d-b1ab-55c98f8a0c31",
@@ -558,15 +941,26 @@ Dla powrotu do działania:
   "url": "https://example.com/health",
   "checked_at": "2026-06-16T12:05:00Z"
 }
-8.2. Obsługa błędów webhooka
-Wymagania:
-- webhook ma timeout 5 sekund,
-- jeżeli webhook zwróci status spoza zakresu 200–299, zaloguj błąd,
-- nie przerywaj głównego sprawdzania monitorów, jeżeli webhook się nie uda,
-- nie blokuj workerów zbyt długo — użyj context timeout.
-9. Konfiguracja aplikacji
+```
+
+### Obsługa błędów webhooka
+
+| Wymóg | Opis |
+|-------|------|
+| Timeout | Webhook ma timeout **5 sekund** |
+| Kody błędu | Jeśli status poza 200-299: zaloguj błąd |
+| Nie przerywaj | Webhook fail nie wstrzymuje monitorowania |
+| Context timeout | Użyj timeout dla worker pool |
+
+---
+
+## ⚙️ Konfiguracja aplikacji
+
 Aplikacja powinna wspierać konfigurację przez zmienne środowiskowe.
-Wymagane zmienne:
+
+**Wymagane zmienne:**
+
+```bash
 APP_ENV=dev
 HTTP_ADDR=:8080
 DATABASE_DSN=./watchdog.db
@@ -577,82 +971,157 @@ SCHEDULER_TICK_SECONDS=5
 WEBHOOK_ENABLED=false
 WEBHOOK_URL=
 LOG_LEVEL=info
-Wymagania:
-- jeżeli zmienna ma sensowną wartość domyślną, aplikacja może jej użyć,
-- API_KEY w trybie produkcyjnym nie może być puste,
-- WORKER_COUNT musi być większe od 0,
-- CHECK_QUEUE_SIZE musi być większe od 0,
-- HTTP_ADDR musi być poprawnym adresem dla serwera HTTP.
-10. Logowanie
-Dodaj uporządkowane logi. Możesz użyć standardowego log/slog.
-Logi powinny zawierać:
-- start aplikacji,
-- załadowaną konfigurację bez sekretów,
-- uruchomienie serwera HTTP,
-- start i stop schedulera,
-- start i stop workerów,
-- każde wykonane sprawdzenie,
-- błędy HTTP clienta,
-- błędy zapisu do bazy,
-- wysłane webhooki,
-- błędne requesty API.
-Przykładowy log:
+```
+
+**Reguły walidacji:**
+
+- Zmienne z sensowną domyślną wartością mogą być opcjonalne
+- `API_KEY` w produkcji nie może być puste
+- `WORKER_COUNT` > 0
+- `CHECK_QUEUE_SIZE` > 0
+- `HTTP_ADDR` musi być poprawnym adresem
+
+---
+
+## 📝 Logowanie
+
+Dodaj uporządkowane logi. Możesz użyć standardowego `log/slog`.
+
+**Logi powinny zawierać:**
+
+```
+✅ Start aplikacji
+✅ Załadowana konfiguracja (bez sekretów!)
+✅ Uruchomienie serwera HTTP
+✅ Start i stop schedulera
+✅ Start i stop workerów
+✅ Każde wykonane sprawdzenie
+✅ Błędy HTTP clienta
+✅ Błędy zapisu do bazy
+✅ Wysłane webhooki
+✅ Błędne requesty API
+```
+
+**Przykładowy log:**
+
+```
 level=INFO msg="check completed" monitor_id=8f4b5d2e status_code=200 success=true duration_ms=123
-Nie loguj wartości API_KEY ani nagłówków typu Authorization.
-11. Struktura katalogów
-Proponowana struktura:
+```
+
+⚠️ **Nigdy nie loguj:**
+- Wartości `API_KEY`
+- Nagłówków `Authorization`
+- Sensytywnych danych
+
+---
+
+## 📁 Struktura katalogów
+
+Proponowana struktura (nie musisz być sztywny):
+
+```
 watchdog/
-  cmd/
-    watchdog/
-      main.go
-  internal/
-    api/
-      handlers.go
-      middleware.go
-      routes.go
-      errors.go
-    app/
-      app.go
-    checker/
-      checker.go
-      result.go
-    config/
-      config.go
-    monitor/
-      model.go
-      repository.go
-      service.go
-      validation.go
-    scheduler/
-      scheduler.go
-      worker_pool.go
-    incident/
-      model.go
-      repository.go
-      service.go
-    notify/
-      webhook.go
-    storage/
-      db.go
-      migrations.go
-  migrations/
-    001_create_monitors.sql
-    002_create_checks.sql
-    003_create_incidents.sql
-  tests/
-    integration/
-  go.mod
-  README.md
-  Dockerfile
-  docker-compose.yml
-  Makefile
-Nie musisz trzymać się tego idealnie, ale warto rozdzielić logikę domenową od handlerów HTTP.
-12. Minimalny podział na warstwy
-Handler HTTP
-Odpowiada tylko za:
-- odczyt requestu,
-- walidację podstawowego JSON-a,
-- wywołanie serwisu,
+  ├── cmd/
+  │   └── watchdog/
+  │       ├── main.go
+  │       ├── cli.go
+  │       └── runner.go
+  ├── internal/
+  │   ├── api/
+  │   │   ├── handlers.go
+  │   │   ├── middleware.go
+  │   │   ├── routes.go
+  │   │   └── errors.go
+  │   ├── app/
+  │   │   └── app.go
+  │   ├── checker/
+  │   │   ├── checker.go
+  │   │   └── result.go
+  │   ├── config/
+  │   │   └── config.go
+  │   ├── monitor/
+  │   │   ├── model.go
+  │   │   ├── repository.go
+  │   │   ├── service.go
+  │   │   └── validation.go
+  │   ├── scheduler/
+  │   │   ├── scheduler.go
+  │   │   └── worker_pool.go
+  │   ├── incident/
+  │   │   ├── model.go
+  │   │   ├── repository.go
+  │   │   └── service.go
+  │   ├── notify/
+  │   │   └── webhook.go
+  │   └── storage/
+  │       ├── db.go
+  │       └── migrations.go
+  ├── migrations/
+  │   ├── 001_create_monitors.sql
+  │   ├── 002_create_checks.sql
+  │   └── 003_create_incidents.sql
+  ├── tests/
+  │   └── integration/
+  ├── go.mod
+  ├── README.md
+  ├── Dockerfile
+  ├── docker-compose.yml
+  └── Makefile
+```
+
+> 💡 Warto rozdzielić logikę domenową od handlerów HTTP.
+
+---
+
+## 🏗️ Podział na warstwy
+
+### Handler HTTP
+
+Odpowiada **tylko** za:
+- Odczyt requestu
+- Walidacja podstawowego JSON-a
+- Wywołanie serwisu
+- Zwrócenie response
+
+### Service
+
+Odpowiada za logikę biznesową:
+- Tworzenie monitora
+- Walidacja reguł
+- Włączanie/wyłączanie
+- Obliczanie statusu
+- Uruchamianie ręcznego sprawdzenia
+- Obsługę incidentów
+
+### Repository
+
+Odpowiada za bazę danych:
+- `InsertMonitor`, `GetMonitor`, `ListMonitors`, `UpdateMonitor`, `DeleteMonitor`
+- `InsertCheck`, `ListChecks`, `GetStats`
+
+### Checker
+
+Odpowiada za wykonanie pojedynczego sprawdzenia HTTP:
+
+```go
+type Checker interface {
+    Check(ctx context.Context, monitor Monitor) CheckResult
+}
+```
+
+### Scheduler
+
+Odpowiada za planowanie zadań:
+
+```go
+type Scheduler interface {
+    Start(ctx context.Context) error
+}
+```
+
+---
+
+## 🧪 Testy
 - zwrócenie response.
 Handler nie powinien sam wykonywać SQL-a ani logiki schedulera.
 Service
@@ -673,67 +1142,94 @@ Odpowiada za bazę danych:
 - InsertCheck
 - ListChecks
 - GetStats
-Checker
-Odpowiada za wykonanie jednego sprawdzenia HTTP:
-type Checker interface {
-    Check(ctx context.Context, monitor Monitor) CheckResult
-}
-Scheduler
-Odpowiada za planowanie zadań:
-type Scheduler interface {
-    Start(ctx context.Context) error
-}
-13. Testy
+---
+
+## 🧪 Testy
+
 To powinien być projekt z realnymi testami, nie tylko ręczne klikanie.
-13.1. Testy jednostkowe
-Wymagane testy:
-- walidacja monitora,
-- budowanie requestu HTTP,
-- interpretacja odpowiedzi HTTP,
-- timeout requestu,
-- expected_status działa poprawnie,
-- expected_body_substring działa poprawnie,
-- obliczanie statystyk uptime,
-- formatowanie błędów API,
-- autoryzacja API key,
-- logika incidentów: down tworzy incident, kolejne down zwiększa licznik, up zamyka incident.
-Do testów HTTP użyj httptest.Server.
-Przykład scenariuszy:
-1. Serwer testowy zwraca 200 i body "ok" -> check success.
-2. Serwer testowy zwraca 500 -> check failed.
-3. Serwer testowy zwraca 200, ale bez oczekiwanego tekstu -> check failed.
-4. Serwer testowy śpi dłużej niż timeout -> check failed.
-13.2. Testy integracyjne
-Minimum:
-- utworzenie monitora przez API,
-- pobranie monitora przez API,
-- ręczne uruchomienie sprawdzenia,
-- zapis wyniku w bazie,
-- pobranie historii sprawdzeń,
-- usunięcie monitora.
-Test integracyjny może uruchamiać aplikację z tymczasową bazą SQLite.
-13.3. Pokrycie testami
-Ustaw cel:
-minimum 60% coverage dla internal/
-Komenda:
+
+### Testy jednostkowe
+
+**Wymagane testy:**
+
+- ✅ Walidacja monitora
+- ✅ Budowanie requestu HTTP
+- ✅ Interpretacja odpowiedzi HTTP
+- ✅ Timeout requestu
+- ✅ `expected_status` — czy działa poprawnie
+- ✅ `expected_body_substring` — czy działa poprawnie
+- ✅ Obliczanie statystyk uptime
+- ✅ Formatowanie błędów API
+- ✅ Autoryzacja API key
+- ✅ Logika incidentów: down → incident, kolejne down → licznik, up → zamknięcie
+
+**Do testów HTTP użyj** `httptest.Server`.
+
+**Przykładowe scenariusze:**
+
+```
+1. Serwer testowy zwraca 200 i body "ok"          → check success ✅
+2. Serwer testowy zwraca 500                       → check failed ❌
+3. Serwer testowy zwraca 200, ale bez tekstu       → check failed ❌
+4. Serwer testowy śpi dłużej niż timeout           → check failed ❌
+```
+
+### Testy integracyjne
+
+**Minimum:**
+
+- ✅ Utworzenie monitora przez API
+- ✅ Pobranie monitora przez API
+- ✅ Ręczne uruchomienie sprawdzenia
+- ✅ Zapis wyniku w bazie
+- ✅ Pobranie historii sprawdzeń
+- ✅ Usunięcie monitora
+
+> 💡 Test integracyjny może uruchamiać aplikację z tymczasową bazą SQLite.
+
+### Pokrycie testami
+
+**Cel:** minimum **60% coverage** dla `internal/`
+
+**Komenda:**
+
+```bash
 go test ./... -cover
-14. Obsługa zamykania aplikacji
-Aplikacja musi poprawnie reagować na SIGINT i SIGTERM.
-Po naciśnięciu Ctrl+C:
-- serwer HTTP przestaje przyjmować nowe requesty,
-- scheduler przestaje dodawać nowe zadania,
-- workerzy kończą aktualnie wykonywane zadania albo przerywają je przez context timeout,
-- połączenie z bazą danych zostaje zamknięte,
-- aplikacja kończy się bez panic.
-To wymaganie jest ważne, bo nauczy Cię poprawnego użycia context.Context.
-15. Docker i uruchamianie
-Dodaj Dockerfile.
-Wymagania:
-- build aplikacji w osobnym etapie,
-- finalny obraz powinien zawierać tylko binarkę i potrzebne pliki migracji,
-- aplikacja powinna uruchamiać się przez komendę watchdog server.
-Dodaj docker-compose.yml dla lokalnego uruchomienia.
-Wersja z SQLite może wyglądać koncepcyjnie tak:
+```
+
+---
+
+## 🛑 Obsługa zamykania aplikacji
+
+Aplikacja musi poprawnie reagować na `SIGINT` i `SIGTERM`.
+
+**Po naciśnięciu Ctrl+C:**
+
+- 🛑 Serwer HTTP przestaje przyjmować nowe requesty
+- 🛑 Scheduler przestaje dodawać nowe zadania
+- ⏱️ Workerzy kończą aktualnie wykonywane zadania (lub przerywają przez context timeout)
+- 🗄️ Połączenie z bazą danych zostaje zamknięte
+- ✅ Aplikacja kończy się bez panic
+
+> 💡 To ćwiczenie nauczy Cię poprawnego użycia `context.Context`.
+
+---
+
+## 🐳 Docker i uruchamianie
+
+### Dockerfile
+
+**Wymagania:**
+
+- ✅ Build aplikacji w osobnym etapie (multi-stage)
+- ✅ Finalny obraz zawiera tylko binarkę i migracje
+- ✅ Aplikacja uruchamia się: `watchdog server`
+
+### docker-compose.yml
+
+Przykład z SQLite:
+
+```yaml
 services:
   watchdog:
     build: .
@@ -748,8 +1244,17 @@ services:
 
 volumes:
   watchdog_data:
-16. Makefile
+```
+
+---
+
+## 🛠️ Makefile
+
 Dodaj podstawowe komendy:
+
+```makefile
+.PHONY: run test cover lint build docker-build
+
 run:
 	go run ./cmd/watchdog server
 
@@ -767,13 +1272,45 @@ build:
 
 docker-build:
 	docker build -t watchdog .
-17. README
+```
+
+---
+
+## 📖 README
+
 README powinno zawierać:
-- opis projektu,
-- wymagania systemowe,
-- instrukcję uruchomienia lokalnego,
-- instrukcję uruchomienia przez Docker,
-- przykłady użycia API przez curl,
+
+- ✅ Opis projektu
+- ✅ Wymagania systemowe
+- ✅ Instrukcję uruchomienia lokalnego
+- ✅ Instrukcję uruchomienia przez Docker
+- ✅ Przykłady użycia API (curl)
+- ✅ Przykłady użycia CLI
+- ✅ Opis zmiennych środowiskowych
+- ✅ Opis architektury
+- ✅ Znane ograniczenia
+
+**Przykład curl do utworzenia monitora:**
+
+```bash
+curl -X POST http://localhost:8080/api/v1/monitors \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: secret-dev-key" \
+  -d '{
+    "name": "Example API",
+    "url": "https://example.com/health",
+    "method": "GET",
+    "interval_seconds": 60,
+    "timeout_seconds": 5,
+    "expected_status": 200,
+    "expected_body_substring": "ok",
+    "enabled": true
+  }'
+```
+
+---
+
+## 📊 Etapy realizacji
 - przykłady użycia CLI,
 - opis zmiennych środowiskowych,
 - opis architektury,
@@ -793,141 +1330,184 @@ curl -X POST http://localhost:8080/api/v1/monitors \
     "expected_body_substring": "ok",
     "enabled": true
   }'
-18. Etapy realizacji
-Etap 1 — szkielet projektu
-Zakres:
-- utworzenie modułu Go,
-- struktura katalogów,
-- konfiguracja,
-- logger,
-- prosty endpoint GET /healthz,
-- Makefile.
-Kryterium ukończenia:
+```
+
+---
+
+## 📊 Etapy realizacji
+
+### Etap 1 — Szkielet projektu
+
+**Zakres:**
+- ✅ Moduł Go
+- ✅ Struktura katalogów
+- ✅ Konfiguracja
+- ✅ Logger
+- ✅ Endpoint `GET /healthz`
+- ✅ Makefile
+
+**Kryterium ukończenia:**
+
+```bash
 go run ./cmd/watchdog server
-uruchamia serwer, a:
 curl http://localhost:8080/healthz
-zwraca:
-{"status":"ok"}
-Etap 2 — baza danych i monitory
-Zakres:
-- migracje,
-- tabela monitors,
-- repository dla monitorów,
-- endpointy CRUD monitorów,
-- walidacja,
-- testy walidacji.
-Kryterium ukończenia:
-Można utworzyć, pobrać, zaktualizować, wyłączyć i usunąć monitor przez REST API.
-Etap 3 — checker HTTP
-Zakres:
-- implementacja wykonywania pojedynczego sprawdzenia,
-- timeout przez context,
-- obsługa expected_status,
-- obsługa expected_body_substring,
-- zapis wyniku do bazy,
-- testy przez httptest.Server.
-Kryterium ukończenia:
-Ręczne wywołanie POST /api/v1/monitors/{id}/checks dodaje zadanie, wykonuje request i zapisuje wynik.
-Etap 4 — worker pool
-Zakres:
-- kolejka zadań,
-- workerzy,
-- obsługa pełnej kolejki,
-- graceful shutdown.
-Kryterium ukończenia:
-Ręczne sprawdzenia nie wykonują się bezpośrednio w handlerze HTTP, tylko przez worker pool.
-Etap 5 — scheduler
-Zakres:
-- cykliczne odczytywanie aktywnych monitorów,
-- planowanie sprawdzeń według interwałów,
-- brak równoległych sprawdzeń tego samego monitora,
-- dynamiczne reagowanie na enable/disable/update/delete.
-Kryterium ukończenia:
-Po dodaniu aktywnego monitora system sam wykonuje sprawdzenia zgodnie z interwałem.
-Etap 6 — status i statystyki
-Zakres:
-- endpoint statusu monitora,
-- endpoint statystyk,
-- obliczanie uptime,
-- historia sprawdzeń.
-Kryterium ukończenia:
-Można sprawdzić aktualny status monitora i procent dostępności z wybranego zakresu.
-Etap 7 — incidenty i webhooki
-Zakres:
-- tabela incidents,
-- wykrywanie przejść up/down,
-- wysyłanie webhooka,
-- testy logiki incidentów.
-Kryterium ukończenia:
-System wysyła webhook tylko wtedy, gdy monitor zmienia stan.
-Etap 8 — CLI
-Zakres:
-- komendy monitor add/list/get/delete/check/status/checks,
-- konfiguracja API URL i API key,
-- czytelne komunikaty błędów.
-Kryterium ukończenia:
-Da się korzystać z aplikacji bez pisania curl-i.
-Etap 9 — Docker, dokumentacja i porządki
-Zakres:
-- Dockerfile,
-- docker-compose.yml,
-- README,
-- przykłady użycia,
-- testy końcowe,
-- go vet,
-- coverage.
-Kryterium ukończenia:
-Nowa osoba może sklonować repozytorium, uruchomić projekt i dodać pierwszy monitor na podstawie README.
-19. Definicja ukończenia projektu
-Projekt możesz uznać za skończony, gdy spełnia wszystkie poniższe warunki:
-1. Aplikacja uruchamia się lokalnie jedną komendą.
-2. Można dodać monitor HTTP.
-3. Monitor jest automatycznie sprawdzany zgodnie z interwałem.
-4. Wyniki sprawdzeń są zapisywane w bazie.
-5. Można pobrać historię sprawdzeń przez API.
-6. Można pobrać aktualny status monitora.
-7. Można pobrać statystyki uptime.
-8. Ręczne sprawdzenie działa przez kolejkę i worker pool.
-9. Aplikacja obsługuje graceful shutdown.
-10. API wymaga klucza X-API-Key.
-11. CLI obsługuje podstawowe operacje.
-12. Testy przechodzą przez go test ./...
-13. README opisuje uruchomienie i przykłady użycia.
-14. Projekt można uruchomić przez Docker.
-20. Dodatkowe wyzwania, gdy podstawowa wersja będzie gotowa
-Po ukończeniu głównej wersji możesz rozszerzyć projekt o:
-- prosty panel HTML z html/template,
-- eksport wyników do CSV,
-- Prometheus metrics pod /metrics,
-- endpoint /readyz sprawdzający połączenie z bazą,
-- retry policy, np. 3 próby przed oznaczeniem jako down,
-- monitorowanie TCP, nie tylko HTTP,
-- rate limiting API,
-- role użytkowników,
-- obsługę wielu kanałów powiadomień: Slack, Discord, e-mail,
-- OpenAPI/Swagger,
-- benchmarki checkerów,
-- property-based tests dla walidacji,
-- osobną komendę import/export konfiguracji monitorów.
-21. Czego konkretnie się nauczysz
-Ten projekt powinien przećwiczyć najważniejsze praktyczne elementy Go:
-- projektowanie większej aplikacji w Go,
-- czytelny podział na pakiety,
-- REST API bez ciężkiego frameworka,
-- obsługa JSON,
-- praca z bazą przez database/sql,
-- migracje SQL,
-- context cancellation,
-- timeouty,
-- goroutines,
-- channels,
-- worker pool,
-- graceful shutdown,
-- testy jednostkowe i integracyjne,
-- httptest,
-- Docker,
-- CLI,
-- konfiguracja przez zmienne środowiskowe,
-- logowanie przez slog,
-- obsługa błędów w spójnym formacie.
-Najlepsza kolejność: najpierw REST API i baza, potem pojedynczy checker, potem worker pool, potem scheduler. Dzięki temu projekt będzie rósł naturalnie, zamiast od razu zamienić się w trudny do debugowania system współbieżny.
+# {"status":"ok"}
+```
+
+### Etap 2 — Baza danych i monitory
+
+**Zakres:**
+- ✅ Migracje SQL
+- ✅ Tabela `monitors`
+- ✅ Repository dla monitorów
+- ✅ Endpointy CRUD
+- ✅ Walidacja danych
+- ✅ Testy walidacji
+
+**Kryterium:** Można CRUD-ować monitory przez REST API.
+
+### Etap 3 — Checker HTTP
+
+**Zakres:**
+- ✅ Wykonywanie sprawdzenia
+- ✅ Timeout (context)
+- ✅ `expected_status`
+- ✅ `expected_body_substring`
+- ✅ Zapis wyniku
+- ✅ Testy z httptest
+
+**Kryterium:** `POST /api/v1/monitors/{id}/checks` działa.
+
+### Etap 4 — Worker pool
+
+**Zakres:**
+- ✅ Kolejka zadań
+- ✅ Workerzy
+- ✅ Obsługa pełnej kolejki
+- ✅ Graceful shutdown
+
+**Kryterium:** Sprawdzenia działają przez worker pool.
+
+### Etap 5 — Scheduler
+
+**Zakres:**
+- ✅ Cykliczne sprawdzenia
+- ✅ Respektowanie interwałów
+- ✅ Brak duplikatów
+- ✅ Dynamiczne zmiany
+
+**Kryterium:** Monitor sprawdza się automatycznie.
+
+### Etap 6 — Status i statystyki
+
+**Zakres:**
+- ✅ Endpoint statusu
+- ✅ Endpoint statystyk
+- ✅ Obliczanie uptime
+- ✅ Historia
+
+**Kryterium:** Można sprawdzić status i uptime.
+
+### Etap 7 — Incidenty i webhooki
+
+**Zakres:**
+- ✅ Tabela incidents
+- ✅ Przejścia up ↔ down
+- ✅ Wysyłanie webhooka
+- ✅ Testy
+
+**Kryterium:** Webhook wysyłany tylko przy zmianie stanu.
+
+### Etap 8 — CLI
+
+**Zakres:**
+- ✅ Wszystkie komendy
+- ✅ Konfiguracja
+- ✅ Komunikaty błędów
+
+**Kryterium:** CLI w pełni funkcjonalny.
+
+### Etap 9 — Docker & dokumentacja
+
+**Zakres:**
+- ✅ Dockerfile
+- ✅ docker-compose.yml
+- ✅ README
+- ✅ Przykłady
+- ✅ Testy
+- ✅ Coverage
+
+**Kryterium:** Nowa osoba może uruchomić projekt z README.
+
+---
+
+## ✅ Definicja ukończenia
+
+Projekt gotów, gdy spełnia wszystkie warunki:
+
+1. ✅ Uruchamia się lokalnie jedną komendą
+2. ✅ Można dodać monitor
+3. ✅ Monitor sprawdza się automatycznie
+4. ✅ Wyniki w bazie
+5. ✅ Historia dostępna przez API
+6. ✅ Status dostępny
+7. ✅ Statystyki uptime dostępne
+8. ✅ Ręczne sprawdzenia przez worker pool
+9. ✅ Graceful shutdown
+10. ✅ API key wymagany
+11. ✅ CLI pełny
+12. ✅ `go test ./...` przechodzi
+13. ✅ README kompletny
+14. ✅ Docker działający
+
+---
+
+## 🚀 Dodatkowe wyzwania
+
+Po ukończeniu głównej wersji:
+
+- 🎨 Panel HTML (html/template)
+- 📊 Export CSV
+- 📈 Prometheus metrics
+- 🏥 Endpoint /readyz
+- 🔄 Retry policy
+- 🌐 TCP monitoring
+- ⚡ Rate limiting
+- 👥 Role użytkowników
+- 📢 Slack, Discord, e-mail
+- 📚 OpenAPI/Swagger
+- ⏱️ Benchmarki
+- 🧪 Property-based tests
+- 💾 Import/export
+
+---
+
+## 🎓 Czego się nauczysz
+
+**Go Essentials:**
+- 🔌 REST API (net/http)
+- 📝 JSON (encoding/json)
+- 🗄️ Baza danych (database/sql)
+- 🎯 Context, goroutines, channels
+- 👷 Worker pool
+- 🛑 Graceful shutdown
+
+**Quality:**
+- ✅ Testy jednostkowe i integracyjne
+- 🧪 httptest
+- 📊 Coverage
+- 🔍 Logging (slog)
+
+**DevOps:**
+- 🐳 Docker & docker-compose
+- 📋 Makefile
+- ⚙️ Zmienne środowiskowe
+
+---
+
+## 💡 Rekomendowana kolejność pracy
+
+```
+REST API + Baza → Checker → Worker Pool → Scheduler
+```
+

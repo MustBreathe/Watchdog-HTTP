@@ -56,7 +56,7 @@ func (cli *CommandLineInterface) Build(args []string) (Runner, error) {
 	case CONFIG:
 		{
 
-			application, err := config.NewDisplayConfiguration()
+			application, err := config.NewDisplay()
 
 			if err != nil {
 				log.Fatal(err)

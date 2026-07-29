@@ -12,7 +12,7 @@ type Display struct {
 	// This struct can be extended to include more display-related settings as needed
 }
 
-func NewDisplayConfiguration() (*Display, error) {
+func NewDisplay() (*Display, error) {
 	return &Display{}, nil
 }
 
