@@ -7,6 +7,8 @@ import (
 )
 
 func main() {
+
 	godotenv.Load()
+
 	cmd.Execute()
 }

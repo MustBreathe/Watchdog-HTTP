@@ -1,15 +1,20 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
 )
 
-type Router struct{}
+type Router struct {
+	db *sql.DB
+}
 
-func NewRouter() *Router {
-	return &Router{}
+func NewRouter(db *sql.DB) *Router {
+	return &Router{
+		db: db,
+	}
 }
 
 type Response struct {

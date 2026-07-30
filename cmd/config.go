@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"watchdog/main.go/internal/configuration"
 
 	"github.com/spf13/cobra"
@@ -16,7 +14,7 @@ var configCmd = &cobra.Command{
 The command reads the application's environment variables with the WATCHDOG_
 prefix and prints them in alphabetical order.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("config called")
+		cmd.Println("config called")
 		return configuration.NewDisplay().Run()
 	},
 }

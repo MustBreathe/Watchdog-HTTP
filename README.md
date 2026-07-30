@@ -665,7 +665,7 @@ watchdog monitor get <ID>      # Szczegóły monitora
 watchdog monitor delete <ID>   # Usunięcie monitora
 watchdog monitor check <ID>    # Ręczne sprawdzenie
 watchdog monitor status <ID>   # Status monitora
-watchdog monitor checks <ID>   # Historia sprawdzeń
+watchdog monitor history <ID>  # Historia sprawdzeń
 ```
 
 ### Konfiguracja CLI
