@@ -1,4 +1,4 @@
-package config
+package configuration
 
 import (
 	"log"
@@ -12,8 +12,8 @@ type Display struct {
 	// This struct can be extended to include more display-related settings as needed
 }
 
-func NewDisplay() (*Display, error) {
-	return &Display{}, nil
+func NewDisplay() *Display {
+	return &Display{}
 }
 
 func (dc *Display) Run() error {

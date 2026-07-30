@@ -1,10 +1,10 @@
 package app
 
 import (
-	"cmd/watchdog/main.go/internal/api"
 	"net/http"
 	"os"
 	"time"
+	"watchdog/main.go/internal/api"
 )
 
 type App struct {
