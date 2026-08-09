@@ -22,7 +22,7 @@ func (s MonitorService) GetMonitors() ([]MonitorDTO, error) {
 
 	monitors := make([]MonitorDTO, 0)
 
-	for i := 0; rows.Next(); i++ {
+	for rows.Next() {
 		var monitor MonitorDTO
 		if err := rows.Scan(&monitor.ID, &monitor.Name, &monitor.URL); err != nil {
 			return nil, err
@@ -30,5 +30,5 @@ func (s MonitorService) GetMonitors() ([]MonitorDTO, error) {
 		monitors = append(monitors, monitor)
 	}
 
-	return monitors, err
+	return monitors, rows.Err()
 }
