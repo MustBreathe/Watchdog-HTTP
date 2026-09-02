@@ -8,7 +8,7 @@ import (
 	"io"
 
 	"github.com/golang-migrate/migrate/v4"
-	migratesqlite3 "github.com/golang-migrate/migrate/v4/database/sqlite3"
+	migratesqlite "github.com/golang-migrate/migrate/v4/database/sqlite"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
 
@@ -23,7 +23,7 @@ func runMigrations(db *sql.DB, out io.Writer) error {
 		return fmt.Errorf("create migration source: %w", err)
 	}
 
-	driver, err := migratesqlite3.WithInstance(db, &migratesqlite3.Config{})
+	driver, err := migratesqlite.WithInstance(db, &migratesqlite.Config{})
 	if err != nil {
 		return fmt.Errorf("create migration driver: %w", err)
 	}
@@ -31,7 +31,7 @@ func runMigrations(db *sql.DB, out io.Writer) error {
 	migrator, err := migrate.NewWithInstance(
 		"iofs",
 		source,
-		"sqlite3",
+		"sqlite",
 		driver,
 	)
 	if err != nil {

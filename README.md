@@ -17,12 +17,12 @@ Aplikacja do monitorowania dostępności stron i API w Go.
 
 ### Uruchomienie serwera
 ```bash
-go run ./cmd/watchdog/main.go server
+go run . server
 ```
 
 ### Instalacja narzędzia do migracji
 ```bash
-go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+go install -tags 'sqlite' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 ```
 
 Po instalacji `migrate.exe` będzie dostępny w: `C:\Users\LukasiM\go\bin`
@@ -101,7 +101,7 @@ Opcjonalnie: prosty panel HTML (nie obowiązkowy)
 ### Opcjonalne biblioteki
 
 ```
-github.com/mattn/go-sqlite3 albo modernc.org/sqlite  — SQLite driver
+modernc.org/sqlite                                   — SQLite driver (CGO-free)
 github.com/jackc/pgx/v5                              — PostgreSQL driver
 github.com/spf13/cobra                               — CLI framework
 github.com/joho/godotenv                             — zmienne środowiskowe
@@ -308,7 +308,7 @@ Wszystkie błędy powinny mieć jeden format:
 
 Dodaj prostą autoryzację przez API key.
 
-Każde żądanie do API (poza `/healthz`) musi zawierać nagłówek:
+Każde żądanie do API (poza `/health`) musi zawierać nagłówek:
 
 ```
 X-API-Key: secret-dev-key
@@ -337,7 +337,7 @@ API_KEY=secret-dev-key
 
 ### Endpointy techniczne
 
-#### `GET /healthz`
+#### `GET /health`
 
 Zwraca status aplikacji. **Nie wymaga API key.**
 
@@ -345,6 +345,7 @@ Zwraca status aplikacji. **Nie wymaga API key.**
 
 ```json
 {
+  "message": "Healthy",
   "status": "ok"
 }
 ```
@@ -827,7 +828,7 @@ Ten projekt używa biblioteki `golang-migrate` do zarządzania migracjami schema
 Zainstaluj narzędzie `migrate` z obsługą SQLite:
 
 ```bash
-go install -tags 'sqlite3' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+go install -tags 'sqlite' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 ```
 
 Sprawdź instalację:
@@ -893,7 +894,7 @@ Jeżeli plik bazy nie istnieje:
 ```bash
 migrate \
   -path migrations \
-  -database "sqlite3://app.db" \
+  -database "sqlite://app.db" \
   up
 ```
 
@@ -912,7 +913,7 @@ oraz wykonane zostaną wszystkie migracje.
 ```bash
 migrate \
   -path migrations \
-  -database "sqlite3://app.db" \
+  -database "sqlite://app.db" \
   up
 ```
 
@@ -921,7 +922,7 @@ migrate \
 ```bash
 migrate \
   -path migrations \
-  -database "sqlite3://app.db" \
+  -database "sqlite://app.db" \
   up 1
 ```
 
@@ -930,7 +931,7 @@ migrate \
 ```bash
 migrate \
   -path migrations \
-  -database "sqlite3://app.db" \
+  -database "sqlite://app.db" \
   down 1
 ```
 
@@ -939,7 +940,7 @@ migrate \
 ```bash
 migrate \
   -path migrations \
-  -database "sqlite3://app.db" \
+  -database "sqlite://app.db" \
   down
 ```
 
@@ -948,7 +949,7 @@ migrate \
 ```bash
 migrate \
   -path migrations \
-  -database "sqlite3://app.db" \
+  -database "sqlite://app.db" \
   version
 ```
 
@@ -960,7 +961,7 @@ migrate \
 import (
     "github.com/golang-migrate/migrate/v4"
 
-    _ "github.com/golang-migrate/migrate/v4/database/sqlite3"
+  _ "github.com/golang-migrate/migrate/v4/database/sqlite"
     _ "github.com/golang-migrate/migrate/v4/source/file"
 )
 ```
@@ -971,7 +972,7 @@ import (
 func RunMigrations() error {
     m, err := migrate.New(
         "file://migrations",
-        "sqlite3://app.db",
+    "sqlite://app.db",
     )
     if err != nil {
         return err
@@ -1044,7 +1045,7 @@ if err != nil {
 m, err := migrate.NewWithSourceInstance(
     "iofs",
   d,
-    "sqlite3://app.db",
+    "sqlite://app.db",
 )
 if err != nil {
     return err
@@ -1080,7 +1081,7 @@ Napraw stan migracji:
 ```bash
 migrate \
   -path migrations \
-  -database "sqlite3://app.db" \
+  -database "sqlite://app.db" \
   force 2
 ```
 
@@ -1180,8 +1181,8 @@ Aplikacja powinna wspierać konfigurację przez zmienne środowiskowe.
 
 ```bash
 APP_ENV=dev
-HTTP_ADDR=:8080
-DATABASE_DSN=./watchdog.db
+WATCHDOG_HTTP_ADDR=:8080
+WATCHDOG_DATABASE_DSN=./watchdog.db
 API_KEY=secret-dev-key
 WORKER_COUNT=5
 CHECK_QUEUE_SIZE=100
@@ -1197,7 +1198,7 @@ LOG_LEVEL=info
 - `API_KEY` w produkcji nie może być puste
 - `WORKER_COUNT` > 0
 - `CHECK_QUEUE_SIZE` > 0
-- `HTTP_ADDR` musi być poprawnym adresem
+- `WATCHDOG_HTTP_ADDR` musi być poprawnym adresem
 
 ---
 
@@ -1454,8 +1455,8 @@ services:
     ports:
       - "8080:8080"
     environment:
-      HTTP_ADDR: ":8080"
-      DATABASE_DSN: "/data/watchdog.db"
+      WATCHDOG_HTTP_ADDR: ":8080"
+      WATCHDOG_DATABASE_DSN: "/data/watchdog.db"
       API_KEY: "secret-dev-key"
     volumes:
       - watchdog_data:/data
@@ -1474,7 +1475,7 @@ Dodaj podstawowe komendy:
 .PHONY: run test cover lint build docker-build
 
 run:
-	go run ./cmd/watchdog server
+  go run . server
 
 test:
 	go test ./...
@@ -1486,7 +1487,7 @@ lint:
 	go vet ./...
 
 build:
-	go build -o bin/watchdog ./cmd/watchdog
+  go build -o bin/watchdog .
 
 docker-build:
 	docker build -t watchdog .
@@ -1561,15 +1562,15 @@ curl -X POST http://localhost:8080/api/v1/monitors \
 - ✅ Struktura katalogów
 - ✅ Konfiguracja
 - ✅ Logger
-- ✅ Endpoint `GET /healthz`
+- ✅ Endpoint `GET /health`
 - ✅ Makefile
 
 **Kryterium ukończenia:**
 
 ```bash
-go run ./cmd/watchdog server
-curl http://localhost:8080/healthz
-# {"status":"ok"}
+go run . server
+curl http://localhost:8080/health
+# {"message":"Healthy","status":"ok"}
 ```
 
 ### Etap 2 — Baza danych i monitory
