@@ -2,9 +2,11 @@ package monitor
 
 import (
 	"database/sql"
+	"encoding/json"
 	"net/url"
 	"strings"
 	"time"
+	"unicode/utf8"
 	"watchdog/main.go/internal/apperrors"
 
 	"github.com/google/uuid"
@@ -258,31 +260,47 @@ func (m MonitorService) DeleteMonitorByID(id string) *apperrors.AppError {
 }
 
 func validateMonitor(m MonitorDTO) *apperrors.AppError {
-
-	if strings.TrimSpace(m.Name) == "" {
+	name := strings.TrimSpace(m.Name)
+	if name == "" {
 		return apperrors.New(apperrors.VALIDATION_ERROR, "monitor name is required", nil)
+	}
+	if utf8.RuneCountInString(name) < 3 || utf8.RuneCountInString(name) > 100 {
+		return apperrors.New(apperrors.VALIDATION_ERROR, "monitor name must be between 3 and 100 characters", nil)
 	}
 	if strings.TrimSpace(m.URL) == "" {
 		return apperrors.New(apperrors.VALIDATION_ERROR, "monitor url is required", nil)
 	}
-	if _, err := url.ParseRequestURI(m.URL); err != nil {
+	parsedURL, err := url.ParseRequestURI(m.URL)
+	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || parsedURL.Host == "" {
 		return apperrors.New(apperrors.VALIDATION_ERROR, "monitor url is invalid", err)
 	}
 
 	switch strings.ToUpper(strings.TrimSpace(m.Method)) {
-	case "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS":
+	case "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD":
 	default:
 		return apperrors.New(apperrors.VALIDATION_ERROR, "monitor method is invalid", nil)
 	}
 
-	if m.IntervalSeconds <= 0 {
-		return apperrors.New(apperrors.VALIDATION_ERROR, "interval_seconds must be greater than 0", nil)
+	if m.IntervalSeconds < 10 || m.IntervalSeconds > 86400 {
+		return apperrors.New(apperrors.VALIDATION_ERROR, "interval_seconds must be between 10 and 86400", nil)
 	}
-	if m.TimeoutSeconds <= 0 {
-		return apperrors.New(apperrors.VALIDATION_ERROR, "timeout_seconds must be greater than 0", nil)
+	if m.TimeoutSeconds < 1 || m.TimeoutSeconds > 60 {
+		return apperrors.New(apperrors.VALIDATION_ERROR, "timeout_seconds must be between 1 and 60", nil)
 	}
 	if m.ExpectedStatus < 100 || m.ExpectedStatus > 599 {
 		return apperrors.New(apperrors.VALIDATION_ERROR, "expected_status must be between 100 and 599", nil)
+	}
+	if m.ExpectedBodySubstring != nil && utf8.RuneCountInString(*m.ExpectedBodySubstring) > 500 {
+		return apperrors.New(apperrors.VALIDATION_ERROR, "expected_body_substring must not exceed 500 characters", nil)
+	}
+	if m.HeadersJSON != nil {
+		var headers map[string]json.RawMessage
+		if err := json.Unmarshal([]byte(*m.HeadersJSON), &headers); err != nil || headers == nil {
+			return apperrors.New(apperrors.VALIDATION_ERROR, "headers must be a JSON object", err)
+		}
+		if len(headers) > 20 {
+			return apperrors.New(apperrors.VALIDATION_ERROR, "headers must not exceed 20 headers", nil)
+		}
 	}
 	if strings.TrimSpace(m.CreatedAt) == "" {
 		return apperrors.New(apperrors.VALIDATION_ERROR, "created_at is required", nil)
