@@ -1,5 +1,7 @@
 package monitor
 
+import "fmt"
+
 type MonitorDTO struct {
 	ID                    string  `json:"id"`
 	Name                  string  `json:"name"`
@@ -13,4 +15,8 @@ type MonitorDTO struct {
 	Enabled               bool    `json:"enabled"`
 	CreatedAt             string  `json:"created_at"`
 	UpdatedAt             string  `json:"updated_at"`
+}
+
+func (m MonitorDTO) Debug() {
+	fmt.Printf("%+v\n", m)
 }

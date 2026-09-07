@@ -5,11 +5,11 @@ import (
 	"io"
 	"os"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 func Open(out io.Writer) (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", os.Getenv("WATCHDOG_DATABASE_DSN"))
+	db, err := sql.Open("sqlite", os.Getenv("WATCHDOG_DATABASE_DSN"))
 	if err != nil {
 		return nil, err
 	}
