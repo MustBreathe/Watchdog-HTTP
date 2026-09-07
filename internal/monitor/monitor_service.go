@@ -4,7 +4,10 @@ import (
 	"database/sql"
 	"net/url"
 	"strings"
+	"time"
 	"watchdog/main.go/internal/apperrors"
+
+	"github.com/google/uuid"
 )
 
 type MonitorService struct {
@@ -134,6 +137,10 @@ func (m MonitorService) CreateMonitor(monitor MonitorDTO) (int64, *apperrors.App
 		return -1, err
 	}
 
+	if strings.TrimSpace(monitor.ID) == "" {
+		monitor.ID = uuid.New().String()
+	}
+
 	result, err := m.db.Exec(`
         INSERT INTO monitors (
             id,
@@ -175,10 +182,83 @@ func (m MonitorService) CreateMonitor(monitor MonitorDTO) (int64, *apperrors.App
 	return lastInsertID, nil
 }
 
-func validateMonitor(m MonitorDTO) *apperrors.AppError {
-	if strings.TrimSpace(m.ID) == "" {
+func (m MonitorService) UpdateMonitor(monitor MonitorDTO) *apperrors.AppError {
+	if strings.TrimSpace(monitor.ID) == "" {
 		return apperrors.New(apperrors.VALIDATION_ERROR, "monitor id is required", nil)
 	}
+
+	if err := validateMonitor(monitor); err != nil {
+		return err
+	}
+
+	result, dbErr := m.db.Exec(`
+        UPDATE monitors SET
+            name = ?,
+            url = ?,
+            method = ?,
+            interval_seconds = ?,
+            timeout_seconds = ?,
+            expected_status = ?,
+            expected_body_substring = ?,
+            headers_json = ?,
+            enabled = ?,
+            updated_at = ?
+        WHERE id = ?
+    `,
+		monitor.Name,
+		monitor.URL,
+		monitor.Method,
+		monitor.IntervalSeconds,
+		monitor.TimeoutSeconds,
+		monitor.ExpectedStatus,
+		toNullString(monitor.ExpectedBodySubstring),
+		toNullString(monitor.HeadersJSON),
+		monitor.Enabled,
+		time.Now(),
+		monitor.ID,
+	)
+
+	if dbErr != nil {
+		return apperrors.New(apperrors.INTERNAL_ERROR, "failed to update monitor", dbErr)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return apperrors.New(apperrors.INTERNAL_ERROR, "failed to determine updated monitors", err)
+	}
+
+	if rowsAffected == 0 {
+		return apperrors.New(apperrors.NOT_FOUND, "monitor not found", nil)
+	}
+
+	return nil
+}
+
+func (m MonitorService) DeleteMonitor(monitor MonitorDTO) *apperrors.AppError {
+	return m.DeleteMonitorByID(monitor.ID)
+}
+
+func (m MonitorService) DeleteMonitorByID(id string) *apperrors.AppError {
+	result, err := m.db.Exec("DELETE FROM monitors WHERE id = ?", id)
+	if err != nil {
+		return apperrors.New(apperrors.INTERNAL_ERROR, "failed to remove monitor", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return apperrors.New(apperrors.INTERNAL_ERROR, "failed to determine removed monitors", err)
+	}
+
+	if rowsAffected == 0 {
+		return apperrors.New(apperrors.NOT_FOUND, "monitor not found", nil)
+	}
+
+	return nil
+
+}
+
+func validateMonitor(m MonitorDTO) *apperrors.AppError {
+
 	if strings.TrimSpace(m.Name) == "" {
 		return apperrors.New(apperrors.VALIDATION_ERROR, "monitor name is required", nil)
 	}
