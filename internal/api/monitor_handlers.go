@@ -16,23 +16,23 @@ func NewMonitorHandler(service *monitor.MonitorService) *MonitorHandler {
 }
 
 func (handler *MonitorHandler) Create(w http.ResponseWriter, r *http.Request) {
-	panic("not implemented exception")
+	writeError(w, http.StatusNotImplemented, "Not Implemented")
 }
 func (handler *MonitorHandler) List(w http.ResponseWriter, r *http.Request) {
-	panic("not implemented exception")
+	writeError(w, http.StatusNotImplemented, "Not Implemented")
 }
 func (handler *MonitorHandler) Get(w http.ResponseWriter, r *http.Request) {
-	panic("not implemented exception")
+	writeError(w, http.StatusNotImplemented, "Not Implemented")
 }
 func (handler *MonitorHandler) Update(w http.ResponseWriter, r *http.Request) {
-	panic("not implemented exception")
+	writeError(w, http.StatusNotImplemented, "Not Implemented")
 }
 func (handler *MonitorHandler) Enable(w http.ResponseWriter, r *http.Request) {
-	panic("not implemented exception")
+	writeError(w, http.StatusNotImplemented, "Not Implemented")
 }
 func (handler *MonitorHandler) Disable(w http.ResponseWriter, r *http.Request) {
-	panic("not implemented exception")
+	writeError(w, http.StatusNotImplemented, "Not Implemented")
 }
 func (handler *MonitorHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	panic("not implemented exception")
+	writeError(w, http.StatusNotImplemented, "Not Implemented")
 }
