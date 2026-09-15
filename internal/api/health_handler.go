@@ -8,7 +8,7 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, Response{
 		Message: "Healthy",
-		Status:  "ok",
+		Status:  http.StatusText(http.StatusOK),
 	})
 
 }

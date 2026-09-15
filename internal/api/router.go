@@ -39,7 +39,13 @@ func registerHandlers(mux *http.ServeMux, db *sql.DB) {
 func (router Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[Incoming] %-4s - %s", r.Method, r.RequestURI)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	router.mux.ServeHTTP(w, r)
+	handler, pattern := router.mux.Handler(r)
+	if pattern == "" {
+		writeError(w, http.StatusNotFound, http.StatusText(http.StatusNotFound))
+		return
+	}
+
+	handler.ServeHTTP(w, r)
 
 }
 
@@ -47,11 +53,10 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 	body, err := json.Marshal(value)
 
 	if err != nil {
-		http.Error(w, `{"error":"internal error"}`, http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
 
 	if _, err := w.Write(body); err != nil {
